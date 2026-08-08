@@ -145,6 +145,29 @@ input[type="range"]::-moz-range-thumb {
 .anim-readout { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
 
 /* ---------- Result ---------- */
+.verdict {
+  margin-bottom: 22px;
+  padding: 18px 22px;
+  border-left: 3px solid var(--accent-2);
+  background: linear-gradient(90deg, rgba(57,208,255,.12), transparent 70%);
+  border-radius: 4px 10px 10px 4px;
+  text-align: center;
+  font-family: var(--mono);
+  box-shadow: 0 0 22px rgba(57,208,255,.08);
+}
+.verdict-head {
+  display: block;
+  font-size: clamp(17px, 2.6vw, 22px);
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--warn);
+  text-shadow: 0 0 14px rgba(255,176,58,.35);
+  margin-bottom: 8px;
+}
+.verdict-body {
+  font-size: 13px; line-height: 1.9;
+  color: var(--text-dim); letter-spacing: .5px;
+}
 .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 @media (max-width: 760px) { .result-grid { grid-template-columns: 1fr; } }
 .result-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }

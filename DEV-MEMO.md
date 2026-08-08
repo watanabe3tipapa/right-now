@@ -56,6 +56,17 @@ hero → 質問5問(スライダー) → ロールシャッハ(図形提示→�
 ## シード生成
 - 回答配列 + 3強度 + 3テキスト（`|` 連結）から FNV-1a で決定論ハッシュ
 
+## 結果診断文（追加機能）
+- `generateVerdict(answers)`: 各軸を高(>=0.65)/低(<=0.35)/中で判定
+- 優先順でヘッドライン選択（疲労x沈み / 焦りx散漫 / 高揚x集中 / 高開放 / 閉鎖+疲労 / 既定）
+- 本文は各軸の短句 + ロールシャッハ合成強度 0.9超(加算)で追記
+- 結果画面の `#verdict` と合成PNGキャプションに表示
+
+## 端末共有（Web Share API / 追加機能）
+- `btn-share-native`: canvas→toBlob→File化し、`navigator.share` で画像+URLを端末共有メニューへ
+  - 段階: ファイル共有可 → `share({files})`／共有可(URLのみ) → `share({title,text})`／不可 → 案内メッセージ
+- GitHub Pages(https)・localhost で動作。`AbortError`(キャンセル)は無視
+
 ## 保存 / QR 共有（追加機能）
 - buildResultImage(): グラフ+フラクタル+見出し+キャプション(タイムスタンプ/SEED/ロールシャッハ)を1枚のcanvasに合成
 - ダウンロード: `right-now_YYYYMMDD-HHMMSS.png`（toDataURL → <a download>）

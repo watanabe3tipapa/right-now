@@ -154,12 +154,45 @@
   }
 
   // 結果
+  // 診断文
+  function band(v) {
+    if (v >= 0.65) return "high";
+    if (v <= 0.35) return "low";
+    return "mid";
+  }
+  const AXIS_LINES = {
+    arousal: { high: "心は高揚しています。", low: "心は沈んでいます。", mid: "心は平穏です。" },
+    anxiety: { high: "焦りが少し混じっています。", low: "心は穏やかです。", mid: "やや落ち着いています。" },
+    fatigue: { high: "体は疲れています。", low: "体は元気です。", mid: "ほどほどに疲れています。" },
+    focus: { high: "集中が利いています。", low: "頭は散漫です。", mid: "集中はほどほどです。" },
+    openness: { high: "心は開いています。", low: "心は閉じています。", mid: "心は通り抜けて黙っています。" },
+  };
+  function generateVerdict(values) {
+    const b = values.map(band);
+    const [ar, an, fa, fo, op] = b;
+    let headline;
+    if (fa === "high" && ar === "low") headline = "バッテリー残りはわずか。休むのも計測のうち。";
+    else if (an === "high" && fo === "low") headline = "集中音がキレています。波が乱れています。";
+    else if (ar === "high" && fo === "high") headline = "フロー帯に入っています。この波に乗ろう。";
+    else if (op === "high") headline = "窓が全開。外の匂いを吸い込んでいます。";
+    else if (op === "low" && fa === "high") headline = "殻にこもったまま。外へ一歩が近道です。";
+    else headline = "今を計るのに、正解はありません。ただ揺れています。";
+    const lines = QUESTIONS.map((q, i) => AXIS_LINES[q.id][b[i]]);
+    if (combinedIntensity() > 0.9) lines.push("ロールシャッハに強い印象。心が語りかけてきます。");
+    return { headline, lines };
+  }
+
   function renderResult(values, seed) {
     show("result");
     Graph.drawGraph($("graph-canvas"), values, seed);
     Fractal.drawFractal($("fractal-canvas"), values.concat([combinedIntensity()]), seed);
     $("result-seed").textContent = "SEED-" + seed.toString(16).toUpperCase().padStart(8, "0");
     drawRorschachOut();
+    const v = generateVerdict(values);
+    const verdict = $("verdict");
+    if (verdict) verdict.innerHTML =
+      '<span class="verdict-head">' + v.headline + '</span>' +
+      '<span class="verdict-body">' + v.lines.join(" ") + '</span>';
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
   }
 
@@ -192,7 +225,7 @@
     const W = 1280, pad = 44, gap = 26;
     const panW = Math.floor((W - pad * 2 - gap) / 2);
     const panH = 620;
-    const capH = 170;
+    const capH = 190;
     const H = pad * 2 + panH + capH;
     const c = document.createElement("canvas");
     c.width = W; c.height = H;
@@ -234,11 +267,14 @@
     ctx.fillStyle = "#39d0ff";
     ctx.fillText("SEED " + $("result-seed").textContent, fx, cy);
     const t = rorschachTexts;
+    ctx.font = "600 22px SFMono-Regular, Menlo, monospace";
+    ctx.fillStyle = "#ffd58a";
+    ctx.fillText(generateVerdict(answers).headline, gx, cy + 38);
     for (let i = 0; i < RORSCHACH_COUNT; i++) {
       if (t[i].trim()) {
         ctx.font = "20px SFMono-Regular, Menlo, monospace";
         ctx.fillStyle = "#7dfa9a";
-        ctx.fillText(`RORSCHACH ${i + 1} //「${t[i].trim()}」 強さ ${Math.round(rorschachIntensities[i] * 100)}`, gx, cy + 38 + i * 28);
+        ctx.fillText(`RORSCHACH ${i + 1} //「${t[i].trim()}」 強さ ${Math.round(rorschachIntensities[i] * 100)}`, gx, cy + 38 + 30 + i * 28);
       }
     }
     return { canvas: c, ts };
@@ -254,6 +290,35 @@
     a.click();
     document.body.removeChild(a);
     $("share-msg").textContent = "画像を保存しました（PNG）";
+  });
+
+  // ---- 端末の共有メニュー（Web Share API） ----
+  function shareParts() {
+    const arr = answers.map((v) => Math.round(v * 100));
+    rorschachIntensities.forEach((v) => arr.push(Math.round(v * 100)));
+    return arr;
+  }
+  $("btn-share-native").addEventListener("click", async () => {
+    const { canvas, ts } = buildResultImage();
+    const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+    const file = new File([blob], `right-now_${ts}.png`, { type: "image/png" });
+    const url = location.origin + location.pathname + "#" + shareParts().join("-");
+    const shareData = { files: [file], title: "RIGHT NOW // 心の計測", text: "今の私の波形とフラクタル。 " + url };
+    if (navigator.share) {
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share(shareData);
+          $("share-msg").textContent = "共有しました";
+          return;
+        }
+        await navigator.share({ title: shareData.title, text: shareData.text });
+        $("share-msg").textContent = "URLを共有しました";
+      } catch (e) {
+        if (e.name !== "AbortError") $("share-msg").textContent = "共有をキャンセル/失敗しました";
+      }
+    } else {
+      $("share-msg").textContent = "端末共有は非対応です。画像は「画像を保存」からどうぞ";
+    }
   });
 
   // ---- LocalStorage 保存 + QR コード共有 ----
@@ -303,9 +368,7 @@
   // URL共有（ハッシュに回答を埋め込む）
   // 形式: #a-b-c-d-e-r1-r2-r3 （旧形式 6パーツは新形式の読み込みで互換）
   $("btn-share").addEventListener("click", () => {
-    const arr = answers.map((v) => Math.round(v * 100));
-    rorschachIntensities.forEach((v) => arr.push(Math.round(v * 100)));
-    const url = location.origin + location.pathname + "#" + arr.join("-");
+    const url = location.origin + location.pathname + "#" + shareParts().join("-");
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(
         () => { $("share-msg").textContent = "URLをコピーしました"; },
