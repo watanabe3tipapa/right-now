@@ -5,9 +5,17 @@
 
 ## 機能
 - 5つの質問をスライダーで回答（0〜100）
+- ロールシャッハ風インクブロット（手続き生成）への解釈入力
 - 嘘発見機風の生成中アニメーション
 - 回答を波形グラフ + フラクタル模様（L-system）として可視化
-- URL ハッシュ（`#50-60-30-70-40`）で結果を共有可能
+- URL ハッシュ（`#50-60-30-70-40-55`、最後はロールシャッハ強度）で結果を共有可能
+- 結果を**タイムスタンプ付きPNG**として保存（`right-now_YYYYMMDD-HHMMSS.png`）
+- **QRコード共有**: 結果画像をLocalStorageに保存し、`?img=token` のQRを生成。スマホ等で読み取ると保存画像を表示（同一ブラウザ/同一オリジン）
+- QRコード生成は CDN（jsDelivr の qrcode）を使用
+
+## 注意
+- LocalStorage は**オリジン・ブラウザ単位**。QRコードは同じブラウザで開いた場合のみ画像を復元します。
+- `?img=token` で開くと保存済み画像をライトボックス表示し、そこから再ダウンロードできます。
 
 ## ローカルで起動
 ```bash
@@ -23,6 +31,6 @@ python3 -m http.server 8000
 ## 構成
 ```
 index.html / style.css / app.js / questions.js
-render/graph.js / render/fractal.js / render/anim.js
+render/graph.js / render/fractal.js / render/rorschach.js / render/anim.js
 .github/workflows/pages.yml
 ```

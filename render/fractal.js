@@ -13,7 +13,7 @@
 
   function buildParams(values, seed) {
     const rnd = mulberry32(seed);
-    const [arousal, anxiety, fatigue, focus, openness] = values;
+    const [arousal, anxiety, fatigue, focus, openness, rsIntensity = 0.5] = values;
 
     // 回答値 → パラメータ
     const baseAngle = lerp(16, 34, arousal);
@@ -25,7 +25,8 @@
     const hueBase = lerp(200, 330, openness);         // 色相 青→紫
     const lenScale = lerp(0.9, 1.25, openness);       // 全長
     const sway = 0.5 + rnd() * 0.5;                   // 揺らぎ係数
-    return { baseAngle, angleVar, depth, shrink, taper, symmetry, hueBase, lenScale, sway, seed, rnd };
+    const energy = lerp(1, 1.9, rsIntensity);         // ロールシャッハ強度→枝量
+    return { baseAngle, angleVar, depth, shrink, taper, symmetry, hueBase, lenScale, sway, energy, seed, rnd };
   }
 
   function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
@@ -82,6 +83,16 @@
     // 中央の継続枝
     if (p.symmetry > 0.7) {
       drawBranch(ctx, x2, y2, angle, newLen * 0.82, depth - 1, newW * 0.9, p, seed);
+    }
+    // ロールシャッハ強度によるオーラ（細かい芽吹き）
+    if (p.energy > 1 && depth <= 3) {
+      const twigs = Math.round((p.energy - 1) * 6);
+      for (let i = 0; i < twigs; i++) {
+        if (p.rnd() < (p.energy - 1) * 0.7) {
+          const a = angle + (p.rnd() * 2 - 1) * 2.2;
+          drawBranch(ctx, x2, y2, a, newLen * (0.3 + p.rnd() * 0.4), depth - 1, newW * 0.5, p, seed);
+        }
+      }
     }
   }
 

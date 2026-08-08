@@ -152,8 +152,72 @@ input[type="range"]::-moz-range-thumb {
 .panel-title { color: var(--text); }
 .panel-id { color: var(--accent); }
 .graph-canvas, .fractal-canvas { width: 100%; height: 380px; border-radius: 4px; background: #04070b; display: block; }
-.result-actions { display: flex; justify-content: center; gap: 16px; margin-top: 26px; }
+.result-actions { display: flex; justify-content: center; gap: 16px; margin-top: 26px; flex-wrap: wrap; }
 .share-msg { text-align: center; margin-top: 14px; font-family: var(--mono); font-size: 12px; color: var(--accent-2); min-height: 16px; }
+
+/* ---------- Modal / Lightbox ---------- */
+.modal {
+  position: fixed; inset: 0; z-index: 100;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(3,6,11,.82); backdrop-filter: blur(6px);
+  padding: 20px;
+}
+.modal.open { display: flex; animation: fadein .25s ease; }
+.modal-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 24px; max-width: 460px; width: 100%; text-align: center;
+  box-shadow: 0 30px 80px rgba(0,0,0,.6);
+}
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-close {
+  background: none; border: 1px solid var(--line); color: var(--text-dim);
+  width: 30px; height: 30px; border-radius: 4px; font-size: 18px; line-height: 1;
+  cursor: pointer; transition: all .2s;
+}
+.modal-close:hover { color: var(--accent); border-color: var(--accent); }
+.qr-canvas { width: 220px; height: 220px; margin: 6px auto 10px; background: #fff; border-radius: 6px; padding: 8px; display: block; }
+.qr-note { font-size: 13px; color: var(--text-dim); line-height: 1.8; }
+.qr-url { font-family: var(--mono); font-size: 11px; color: var(--accent); word-break: break-all; margin-top: 12px; }
+.lightbox-card { max-width: 640px; }
+.lightbox-img { width: 100%; max-height: 62vh; object-fit: contain; border-radius: 6px; background: #000; }
+.lightbox-card .result-actions { margin-top: 18px; }
+
+/* ---------- Rorschach ---------- */
+.rorschach-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 36px 34px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  text-align: center;
+}
+.rorschach-hint { font-size: 14px; color: var(--text-dim); font-weight: 400; display: block; margin-top: 8px; }
+.rorschach-canvas { width: 100%; max-width: 420px; height: 340px; margin: 18px auto 8px; display: block; border-radius: 6px; background: #0a0f18; }
+.rorschach-tools { margin-top: 14px; }
+.rorschach-text {
+  width: 100%; max-width: 420px; margin: 0 auto;
+  background: #0a111b; border: 1px solid var(--line); border-radius: 6px;
+  color: var(--text); font-family: var(--sans); font-size: 15px;
+  padding: 12px 14px; resize: none; text-align: center;
+}
+.rorschach-text:focus { outline: none; border-color: var(--accent); }
+.rorschach-text::placeholder { color: var(--text-dim); }
+.rorschach-intensity { display: flex; align-items: center; gap: 12px; max-width: 420px; margin: 18px auto; }
+.rorschach-intensity .scale-min, .rorschach-intensity .scale-max { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+.rorschach-intensity .scale-max { text-align: right; }
+.rorschach-intensity input[type="range"] { flex: 1; }
+.rorschach-value {
+  font-family: var(--mono); font-size: 26px; color: var(--accent-2);
+  min-width: 48px; text-shadow: 0 0 14px rgba(125,250,154,.4);
+}
+.rorschach-actions { display: flex; justify-content: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+
+/* ---------- Rorschach result line ---------- */
+.rorschach-out {
+  text-align: center; margin-top: 14px;
+  font-family: var(--mono); font-size: 13px; color: var(--text);
+  letter-spacing: .5px; min-height: 18px;
+}
 
 /* ---------- Footer ---------- */
 .foot { text-align: center; font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 2px; padding: 30px 0 34px; }
