@@ -5,9 +5,16 @@
   let current = "hero";
   let quizIndex = 0;
   let answers = new Array(QUESTIONS.length).fill(0.5);
-  let rorschachText = "";
-  let rorschachIntensity = 0.5;
-  let rorschachSeed = (Math.random() * 0xffffffff) >>> 0;
+  let rorschachTexts = ["", "", ""];                    // 3枚のロールシャッハ解釈
+  let rorschachIntensities = [0.5, 0.5, 0.5];           // 各図形の印象強度
+  let rorschachSeeds = [
+    (Math.random() * 0xffffffff) >>> 0,
+    (Math.random() * 0xffffffff) >>> 0,
+    (Math.random() * 0xffffffff) >>> 0,
+  ];
+  const RORSCHACH_COUNT = 3;
+  const RORSCHACH_TITLES = ["羽を広げた蝶", "燃える街", "沈む月"];
+  let rorschachIndex = 0;
 
   const $ = (id) => document.getElementById(id);
 
@@ -72,35 +79,49 @@
       quizIndex++;
       renderQuiz();
     } else {
-      newInkblot();
+      rorschachIndex = 0;
+      renderInkblot();
       show("rorschach");
     }
   });
 
-  // ロールシャッハ
-  function newInkblot() {
-    rorschachSeed = (Math.random() * 0xffffffff) >>> 0;
-    Rorschach.generateInkblot($("rorschach-canvas"), rorschachSeed);
-    $("rorschach-text").value = rorschachText;
-    const v = Math.round(rorschachIntensity * 100);
+  // ロールシャッハ（3枚）
+  function renderInkblot() {
+    $("rorschach-label").textContent =
+      "INPUT 0" + (6 + rorschachIndex) + " // RORSCHACH PROJECTION (" + String(rorschachIndex + 1) + "/" + RORSCHACH_COUNT + ")";
+    $("rorschach-index").textContent = String(rorschachIndex + 1).padStart(2, "0");
+    $("rorschach-fill").style.width = ((rorschachIndex + 1) / RORSCHACH_COUNT * 100) + "%";
+    Rorschach.generateInkblot($("rorschach-canvas"), rorschachSeeds[rorschachIndex]);
+    $("rorschach-text").value = rorschachTexts[rorschachIndex];
+    const v = Math.round(rorschachIntensities[rorschachIndex] * 100);
     $("rorschach-slider").value = v;
     $("rorschach-value").textContent = v;
+    $("btn-rorschach-next").textContent =
+      rorschachIndex === RORSCHACH_COUNT - 1 ? "計測へ進む" : "次の図形へ";
+  }
+  function newInkblot() {
+    rorschachSeeds[rorschachIndex] = (Math.random() * 0xffffffff) >>> 0;
+    Rorschach.generateInkblot($("rorschach-canvas"), rorschachSeeds[rorschachIndex]);
   }
   $("btn-blot").addEventListener("click", newInkblot);
   $("btn-rorschach-prev").addEventListener("click", () => {
-    quizIndex = QUESTIONS.length - 1;
-    renderQuiz();
-    show("quiz");
+    if (rorschachIndex > 0) { rorschachIndex--; renderInkblot(); }
+    else { quizIndex = QUESTIONS.length - 1; renderQuiz(); show("quiz"); }
   });
   $("btn-rorschach-next").addEventListener("click", () => {
-    const seed = seedFromAnswers(answers);
-    beginGeneration(answers, seed);
+    if (rorschachIndex < RORSCHACH_COUNT - 1) {
+      rorschachIndex++;
+      renderInkblot();
+    } else {
+      const seed = seedFromAnswers(answers);
+      beginGeneration(answers, seed);
+    }
   });
   $("rorschach-text").addEventListener("input", (e) => {
-    rorschachText = e.target.value;
+    rorschachTexts[rorschachIndex] = e.target.value;
   });
   $("rorschach-slider").addEventListener("input", (e) => {
-    rorschachIntensity = Number(e.target.value) / 100;
+    rorschachIntensities[rorschachIndex] = Number(e.target.value) / 100;
     $("rorschach-value").textContent = e.target.value;
   });
 
@@ -113,9 +134,14 @@
     }
     return h >>> 0;
   }
+  // 3枚のロールシャッハ強度 => 加算合成（上限1）
+  function combinedIntensity() {
+    return Math.min(1, rorschachIntensities.reduce((a, b) => a + b, 0));
+  }
   function seedFromAnswers(arr) {
     const key = arr.map((v) => Math.round(v * 100).toString(36)).join("") +
-      ":" + Math.round(rorschachIntensity * 100).toString(36) + ":" + rorschachText;
+      ":" + rorschachIntensities.map((v) => Math.round(v * 100).toString(36)).join("") +
+      ":" + rorschachTexts.join("|");
     return hashFnv(key);
   }
 
@@ -131,20 +157,31 @@
   function renderResult(values, seed) {
     show("result");
     Graph.drawGraph($("graph-canvas"), values, seed);
-    Fractal.drawFractal($("fractal-canvas"), values.concat([rorschachIntensity]), seed);
+    Fractal.drawFractal($("fractal-canvas"), values.concat([combinedIntensity()]), seed);
     $("result-seed").textContent = "SEED-" + seed.toString(16).toUpperCase().padStart(8, "0");
-    const t = rorschachText.trim();
-    $("rorschach-out").textContent = t
-      ? `RORSCHACH // あなたが見えたもの：「${t}」 ／ 印象の強さ ${Math.round(rorschachIntensity * 100)}`
-      : "";
+    drawRorschachOut();
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  // 3枚の解釈を結果に表示
+  function drawRorschachOut() {
+    const lines = [];
+    for (let i = 0; i < RORSCHACH_COUNT; i++) {
+      const t = rorschachTexts[i].trim();
+      const s = Math.round(rorschachIntensities[i] * 100);
+      const title = RORSCHACH_TITLES[i];
+      lines.push(t
+        ? `RORSCHACH ${i + 1} // ${title}: 「${t}」／強さ ${s}`
+        : `RORSCHACH ${i + 1} // ${title}: （解釈なし）／強さ ${s}`);
+    }
+    $("rorschach-out").textContent = lines.join("\n");
   }
 
   // 再計測
   $("btn-reload").addEventListener("click", () => {
     answers = new Array(QUESTIONS.length).fill(0.5);
-    rorschachText = "";
-    rorschachIntensity = 0.5;
+    rorschachTexts = ["", "", ""];
+    rorschachIntensities = [0.5, 0.5, 0.5];
     quizIndex = 0;
     renderQuiz();
     show("quiz");
@@ -155,7 +192,7 @@
     const W = 1280, pad = 44, gap = 26;
     const panW = Math.floor((W - pad * 2 - gap) / 2);
     const panH = 620;
-    const capH = 120;
+    const capH = 170;
     const H = pad * 2 + panH + capH;
     const c = document.createElement("canvas");
     c.width = W; c.height = H;
@@ -196,11 +233,13 @@
     ctx.fillText(`RIGHT NOW // ${ts}`, gx, cy);
     ctx.fillStyle = "#39d0ff";
     ctx.fillText("SEED " + $("result-seed").textContent, fx, cy);
-    const t = rorschachText.trim();
-    if (t) {
-      ctx.font = "20px SFMono-Regular, Menlo, monospace";
-      ctx.fillStyle = "#7dfa9a";
-      ctx.fillText(`RORSCHACH //「${t}」 強さ ${Math.round(rorschachIntensity * 100)}`, gx, cy + 38);
+    const t = rorschachTexts;
+    for (let i = 0; i < RORSCHACH_COUNT; i++) {
+      if (t[i].trim()) {
+        ctx.font = "20px SFMono-Regular, Menlo, monospace";
+        ctx.fillStyle = "#7dfa9a";
+        ctx.fillText(`RORSCHACH ${i + 1} //「${t[i].trim()}」 強さ ${Math.round(rorschachIntensities[i] * 100)}`, gx, cy + 38 + i * 28);
+      }
     }
     return { canvas: c, ts };
   }
@@ -262,9 +301,10 @@
   $("lightbox").addEventListener("click", (e) => { if (e.target === $("lightbox")) $("lightbox").classList.remove("open"); });
 
   // URL共有（ハッシュに回答を埋め込む）
+  // 形式: #a-b-c-d-e-r1-r2-r3 （旧形式 6パーツは新形式の読み込みで互換）
   $("btn-share").addEventListener("click", () => {
     const arr = answers.map((v) => Math.round(v * 100));
-    arr.push(Math.round(rorschachIntensity * 100));
+    rorschachIntensities.forEach((v) => arr.push(Math.round(v * 100)));
     const url = location.origin + location.pathname + "#" + arr.join("-");
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(
@@ -292,11 +332,17 @@
     if (!m) return;
     const parts = m[1].split("-").map(Number);
     const n = QUESTIONS.length;
-    const ok = (parts.length === n || parts.length === n + 1) &&
+    const ok = (parts.length === n + 1 || parts.length === n + RORSCHACH_COUNT) &&
       parts.every((x) => x >= 0 && x <= 100);
     if (!ok) return;
-    if (parts.length === n + 1) rorschachIntensity = parts[n] / 100;
     answers = parts.slice(0, n).map((x) => x / 100);
+    if (parts.length === n + 1) {
+      // 旧形式: 最後の1つを全3枚共通の強度として扱う
+      rorschachIntensities = new Array(RORSCHACH_COUNT).fill(parts[n] / 100);
+    } else {
+      rorschachIntensities = parts.slice(n, n + RORSCHACH_COUNT).map((x) => x / 100);
+    }
+    rorschachTexts = ["", "", ""];
     beginGeneration(answers, seedFromAnswers(answers));
   })();
 
@@ -304,7 +350,7 @@
   window.addEventListener("resize", () => {
     if (current === "result") {
       Graph.drawGraph($("graph-canvas"), answers, seedFromAnswers(answers));
-      Fractal.drawFractal($("fractal-canvas"), answers.concat([rorschachIntensity]), seedFromAnswers(answers));
+      Fractal.drawFractal($("fractal-canvas"), answers.concat([combinedIntensity()]), seedFromAnswers(answers));
     }
   });
 })();
