@@ -1,3 +1,4 @@
+/* Signal Ritual top screen: left-aligned observational copy with measured, analogue signal detail. */
 :root {
   --bg: #05070b;
   --bg-2: #0a0f18;
@@ -60,16 +61,50 @@ main { padding: 76px 20px 40px; max-width: 1060px; margin: 0 auto; }
 @keyframes fadein { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
 
 /* ---------- Hero ---------- */
-.hero-inner { text-align: center; padding: 40px 0 10px; }
-.hero-title { font-size: clamp(28px, 6vw, 52px); font-weight: 800; line-height: 1.25; letter-spacing: 1px; }
-.hl {
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.hero-inner {
+  position: relative;
+  width: min(100%, 920px);
+  padding: clamp(42px, 8vh, 86px) 0 26px clamp(22px, 7vw, 92px);
+  text-align: left;
 }
-.hero-desc { margin: 22px auto; max-width: 520px; color: var(--text-dim); line-height: 1.9; font-size: 15px; }
-.hero-canvas { width: 100%; max-width: 520px; height: 160px; margin: 6px auto; display: block; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-2); }
+.hero-inner::before {
+  content: "PRESENT-MOMENT OBSERVATORY";
+  display: block;
+  margin-bottom: 20px;
+  color: var(--accent-2);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 2px;
+}
+.hero-inner::after {
+  content: "01";
+  position: absolute;
+  top: clamp(44px, 8vh, 88px);
+  left: 0;
+  color: var(--text-dim);
+  font: 11px var(--mono);
+  letter-spacing: 2px;
+  writing-mode: vertical-rl;
+}
+.hero-title { max-width: 640px; font-size: clamp(32px, 6vw, 58px); font-weight: 800; line-height: 1.22; letter-spacing: 1px; }
+.hl { color: var(--warn); }
+.hero-desc { margin: 22px 0 24px; max-width: 500px; color: #91a5b8; line-height: 1.95; font-size: 15px; }
+.hero-canvas {
+  width: 100%; max-width: 590px; height: 170px; margin: 26px 0 20px; display: block;
+  border: 1px solid #28415a; border-radius: 0;
+  background: linear-gradient(90deg, rgba(7, 16, 25, .94), rgba(10, 15, 24, .68));
+  box-shadow: 16px 16px 0 rgba(0, 0, 0, .18);
+}
+.hero-inner .btn { min-width: 210px; }
+.hero-proof { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+.hero-proof span {
+  border: 1px solid #25435a;
+  padding: 5px 8px;
+  color: var(--text-dim);
+  background: rgba(10, 15, 24, .52);
+  font: 10px var(--mono);
+  letter-spacing: 1px;
+}
+.hero-proof span:first-child { border-color: rgba(57, 208, 255, .65); color: var(--accent); }
 
 /* ---------- Buttons ---------- */
 .btn {
