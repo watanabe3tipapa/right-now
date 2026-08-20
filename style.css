@@ -128,13 +128,37 @@ input[type="range"]::-moz-range-thumb {
 }
 .quiz-value {
   margin-top: 20px;
-  font-family: var(--mono);
-  font-size: 40px;
+  width: 150px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   text-align: center;
+  font-family: var(--mono);
+  font-size: 34px;
   color: var(--accent-2);
   letter-spacing: 2px;
   text-shadow: 0 0 16px rgba(125,250,154,.4);
+  outline: none;
 }
+.quiz-value:focus { border-color: var(--accent); }
+.quiz-value::-webkit-outer-spin-button,
+.quiz-value::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.quiz-value[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.chips { display: flex; justify-content: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.chip {
+  background: var(--panel); border: 1px solid var(--line); color: var(--text-dim);
+  font-family: var(--mono); font-size: 13px; padding: 7px 16px; border-radius: 999px;
+  cursor: pointer; transition: all .2s;
+}
+.chip:hover { color: var(--accent); border-color: var(--accent); }
+.chip.active {
+  background: rgba(57,208,255,.15); border-color: var(--accent);
+  color: var(--accent); text-shadow: 0 0 10px rgba(57,208,255,.5);
+}
+.key-hint { margin-top: 16px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
 .quiz-nav { display: flex; justify-content: space-between; margin-top: 10px; }
 
 /* ---------- Anim ---------- */

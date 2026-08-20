@@ -41,6 +41,54 @@
     setInterval(draw, 50);
   })();
 
+    // キーボードショートカット（クイズ/ロールシャッハ）
+  document.addEventListener("keydown", (e) => {
+    const tag = e.target && e.target.tagName;
+    const isRorschach = current === "rorschach";
+    const isQuiz = current === "quiz";
+    if (!isQuiz && !isRorschach) return;
+
+    // ロールシャッハ textarea 内: Enter=改行 / Cmd+Enter=次へ / Esc=戻る
+    if (isRorschach && tag === "TEXTAREA") {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        $("btn-rorschach-next").click();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        $("btn-rorschach-prev").click();
+      }
+      return;
+    }
+    // 数値直接入力内: Enter=次へ / 数字は入力へ
+    if (tag === "INPUT" && e.target.id === "quiz-value") {
+      if (e.key === "Enter") { e.preventDefault(); $("btn-next").click(); }
+      return;
+    }
+    // ボタン/その他入力フォーカス中はネイティブ動作を優先
+    if (tag === "BUTTON") return;
+    if (tag === "INPUT" && e.target.type !== "range") return;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (isRorschach) $("btn-rorschach-next").click();
+      else $("btn-next").click();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      if (isRorschach) $("btn-rorschach-prev").click();
+      else $("btn-prev").click();
+    } else if (e.key >= "0" && e.key <= "9") {
+      const v = e.key === "0" ? 100 : Number(e.key) * 10;
+      e.preventDefault();
+      if (isRorschach) setRorschachValue(v);
+      else {
+        answers[quizIndex] = v / 100;
+        $("quiz-slider").value = v;
+        $("quiz-value").value = v;
+        highlightChip(v);
+      }
+    }
+  });
+
   // 開始
   $("btn-start").addEventListener("click", () => {
     quizIndex = 0;
@@ -49,6 +97,9 @@
   });
 
   // 質問
+  function highlightChip(v) {
+    document.querySelectorAll("#quiz-chips .chip").forEach((b) => b.classList.toggle("active", Number(b.dataset.v) === v));
+  }
   function renderQuiz() {
     const q = QUESTIONS[quizIndex];
     $("quiz-index").textContent = String(quizIndex + 1).padStart(2, "0");
@@ -60,14 +111,48 @@
     $("quiz-max").textContent = q.max;
     const v = Math.round(answers[quizIndex] * 100);
     $("quiz-slider").value = v;
-    $("quiz-value").textContent = v;
+    $("quiz-value").value = v;
+    highlightChip(v);
     $("btn-prev").style.visibility = quizIndex === 0 ? "hidden" : "visible";
     $("btn-next").textContent = quizIndex === QUESTIONS.length - 1 ? "計測完了" : "次へ";
   }
 
   $("quiz-slider").addEventListener("input", (e) => {
     answers[quizIndex] = Number(e.target.value) / 100;
-    $("quiz-value").textContent = e.target.value;
+    $("quiz-value").value = e.target.value;
+    highlightChip(Number(e.target.value));
+  });
+
+  // 数値直接入力
+  $("quiz-value").addEventListener("input", (e) => {
+    const v = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
+    answers[quizIndex] = v / 100;
+    $("quiz-slider").value = v;
+    highlightChip(v);
+  });
+  $("quiz-value").addEventListener("blur", () => {
+    $("quiz-value").value = Math.round(answers[quizIndex] * 100);
+  });
+
+  // クイック値チップ
+  $("quiz-chips").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    const v = Number(b.dataset.v);
+    answers[quizIndex] = v / 100;
+    $("quiz-slider").value = v;
+    $("quiz-value").value = v;
+    highlightChip(v);
+  });
+
+  // スケール直クリック
+  $("quiz-scale").addEventListener("click", (e) => {
+    const rect = $("quiz-slider").getBoundingClientRect();
+    const v = Math.max(0, Math.min(100, Math.round((e.clientX - rect.left) / rect.width * 100)));
+    answers[quizIndex] = v / 100;
+    $("quiz-slider").value = v;
+    $("quiz-value").value = v;
+    highlightChip(v);
   });
 
   $("btn-prev").addEventListener("click", () => {
@@ -98,6 +183,15 @@
     $("rorschach-value").textContent = v;
     $("btn-rorschach-next").textContent =
       rorschachIndex === RORSCHACH_COUNT - 1 ? "計測へ進む" : "次の図形へ";
+    if (!isTouch()) $("rorschach-text").focus({ preventScroll: true });
+  }
+  function setRorschachValue(v) {
+    rorschachIntensities[rorschachIndex] = v / 100;
+    $("rorschach-slider").value = v;
+    $("rorschach-value").textContent = v;
+  }
+  function isTouch() {
+    return window.matchMedia && window.matchMedia("(hover: none)").matches;
   }
   function newInkblot() {
     rorschachSeeds[rorschachIndex] = (Math.random() * 0xffffffff) >>> 0;

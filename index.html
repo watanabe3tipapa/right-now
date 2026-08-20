@@ -48,12 +48,20 @@
         <h2 id="quiz-label" class="quiz-label"></h2>
         <p id="quiz-question" class="quiz-question"></p>
         <div class="range-wrap">
-          <div class="range-scale">
+          <div class="range-scale" id="quiz-scale">
             <span id="quiz-min" class="scale-min"></span>
             <input id="quiz-slider" type="range" min="0" max="100" value="50" step="1" />
             <span id="quiz-max" class="scale-max"></span>
           </div>
-          <div id="quiz-value" class="quiz-value">50</div>
+          <input id="quiz-value" class="quiz-value" type="number" min="0" max="100" value="50" aria-label="回答値" />
+          <div class="chips" id="quiz-chips">
+            <button type="button" class="chip" data-v="0">0</button>
+            <button type="button" class="chip" data-v="25">25</button>
+            <button type="button" class="chip" data-v="50">50</button>
+            <button type="button" class="chip" data-v="75">75</button>
+            <button type="button" class="chip" data-v="100">100</button>
+          </div>
+          <p class="key-hint">Enter=次へ / Esc=戻る / 数字キーで値</p>
         </div>
         <div class="quiz-nav">
           <button id="btn-prev" class="btn ghost">戻る</button>
@@ -73,7 +81,7 @@
         <h2 class="quiz-label" id="rorschach-label">INPUT 06 // RORSCHACH PROJECTION</h2>
         <p class="quiz-question">
           この図形は<strong>何に見えますか？</strong><br />
-          <span class="rorschach-hint">ロールシャッハ・テスト風。心が勝手に映像を結ぶはずです。</span>
+          <span class="rorschach-hint">ロールシャッハ・テスト風。心が勝手に映像を結ぶはずです。<br />解釈は空のままで計測してもOK（Cmd/Ctrl+Enter で次へ）。</span>
         </p>
         <canvas id="rorschach-canvas" class="rorschach-canvas"></canvas>
         <div class="rorschach-tools">
