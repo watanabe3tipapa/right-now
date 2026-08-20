@@ -33,12 +33,15 @@
   setInterval(tick, 1000);
   tick();
 
-  // ヒーロー波
+  // ヒーロー波: 非表示タブで止まるrequestAnimationFrameを使い、不要な再描画を避ける
   (function heroWave() {
     const c = $("hero-canvas");
-    function draw() { Graph.drawHeroWave(c); }
-    draw();
-    setInterval(draw, 50);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function draw(now) {
+      Graph.drawHeroWave(c, now);
+      if (!reducedMotion) requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
   })();
 
     // キーボードショートカット（クイズ/ロールシャッハ）
@@ -80,12 +83,7 @@
       const v = e.key === "0" ? 100 : Number(e.key) * 10;
       e.preventDefault();
       if (isRorschach) setRorschachValue(v);
-      else {
-        answers[quizIndex] = v / 100;
-        $("quiz-slider").value = v;
-        $("quiz-value").value = v;
-        highlightChip(v);
-      }
+      else setQuizValue(v);
     }
   });
 
@@ -99,6 +97,13 @@
   // 質問
   function highlightChip(v) {
     document.querySelectorAll("#quiz-chips .chip").forEach((b) => b.classList.toggle("active", Number(b.dataset.v) === v));
+  }
+  function setQuizValue(value) {
+    const v = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+    answers[quizIndex] = v / 100;
+    $("quiz-slider").value = v;
+    $("quiz-value").value = v;
+    highlightChip(v);
   }
   function renderQuiz() {
     const q = QUESTIONS[quizIndex];
@@ -118,17 +123,12 @@
   }
 
   $("quiz-slider").addEventListener("input", (e) => {
-    answers[quizIndex] = Number(e.target.value) / 100;
-    $("quiz-value").value = e.target.value;
-    highlightChip(Number(e.target.value));
+    setQuizValue(e.target.value);
   });
 
   // 数値直接入力
   $("quiz-value").addEventListener("input", (e) => {
-    const v = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
-    answers[quizIndex] = v / 100;
-    $("quiz-slider").value = v;
-    highlightChip(v);
+    setQuizValue(e.target.value);
   });
   $("quiz-value").addEventListener("blur", () => {
     $("quiz-value").value = Math.round(answers[quizIndex] * 100);
@@ -138,21 +138,14 @@
   $("quiz-chips").addEventListener("click", (e) => {
     const b = e.target.closest(".chip");
     if (!b) return;
-    const v = Number(b.dataset.v);
-    answers[quizIndex] = v / 100;
-    $("quiz-slider").value = v;
-    $("quiz-value").value = v;
-    highlightChip(v);
+    setQuizValue(b.dataset.v);
   });
 
   // スケール直クリック
   $("quiz-scale").addEventListener("click", (e) => {
     const rect = $("quiz-slider").getBoundingClientRect();
     const v = Math.max(0, Math.min(100, Math.round((e.clientX - rect.left) / rect.width * 100)));
-    answers[quizIndex] = v / 100;
-    $("quiz-slider").value = v;
-    $("quiz-value").value = v;
-    highlightChip(v);
+    setQuizValue(v);
   });
 
   $("btn-prev").addEventListener("click", () => {
@@ -375,15 +368,29 @@
   }
 
   // ---- PNG ダウンロード（タイムスタンプ付き） ----
-  $("btn-download").addEventListener("click", () => {
-    const { canvas, ts } = buildResultImage();
+  function canvasToBlob(canvas) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("PNGの生成に失敗しました")), "image/png");
+    });
+  }
+  function downloadBlob(blob, fileName) {
     const a = document.createElement("a");
-    a.href = canvas.toDataURL("image/png");
-    a.download = `right-now_${ts}.png`;
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    $("share-msg").textContent = "画像を保存しました（PNG）";
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+  $("btn-download").addEventListener("click", async () => {
+    try {
+      const { canvas, ts } = buildResultImage();
+      downloadBlob(await canvasToBlob(canvas), `right-now_${ts}.png`);
+      $("share-msg").textContent = "画像を保存しました（PNG）";
+    } catch (e) {
+      $("share-msg").textContent = "画像の保存に失敗しました";
+    }
   });
 
   // ---- 端末の共有メニュー（Web Share API） ----
@@ -393,13 +400,16 @@
     return arr;
   }
   $("btn-share-native").addEventListener("click", async () => {
-    const { canvas, ts } = buildResultImage();
-    const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
-    const file = new File([blob], `right-now_${ts}.png`, { type: "image/png" });
-    const url = location.origin + location.pathname + "#" + shareParts().join("-");
-    const shareData = { files: [file], title: "RIGHT NOW // 心の計測", text: "今の私の波形とフラクタル。 " + url };
-    if (navigator.share) {
-      try {
+    if (!navigator.share) {
+      $("share-msg").textContent = "端末共有は非対応です。画像は「画像を保存」からどうぞ";
+      return;
+    }
+    try {
+      const { canvas, ts } = buildResultImage();
+      const blob = await canvasToBlob(canvas);
+      const file = new File([blob], `right-now_${ts}.png`, { type: "image/png" });
+      const url = location.origin + location.pathname + "#" + shareParts().join("-");
+      const shareData = { files: [file], title: "RIGHT NOW // 心の計測", text: "今の私の波形とフラクタル。 " + url };
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share(shareData);
           $("share-msg").textContent = "共有しました";
@@ -407,11 +417,8 @@
         }
         await navigator.share({ title: shareData.title, text: shareData.text });
         $("share-msg").textContent = "URLを共有しました";
-      } catch (e) {
-        if (e.name !== "AbortError") $("share-msg").textContent = "共有をキャンセル/失敗しました";
-      }
-    } else {
-      $("share-msg").textContent = "端末共有は非対応です。画像は「画像を保存」からどうぞ";
+    } catch (e) {
+      if (e.name !== "AbortError") $("share-msg").textContent = "共有をキャンセル/失敗しました";
     }
   });
 
@@ -503,11 +510,15 @@
     beginGeneration(answers, seedFromAnswers(answers));
   })();
 
-  // リサイズ
+  // リサイズ: イベント連打を1フレームへまとめ、同じシードを使って再描画する
+  let resultResizeFrame = null;
   window.addEventListener("resize", () => {
-    if (current === "result") {
-      Graph.drawGraph($("graph-canvas"), answers, seedFromAnswers(answers));
-      Fractal.drawFractal($("fractal-canvas"), answers.concat([combinedIntensity()]), seedFromAnswers(answers));
-    }
+    if (current !== "result" || resultResizeFrame) return;
+    resultResizeFrame = requestAnimationFrame(() => {
+      resultResizeFrame = null;
+      const seed = seedFromAnswers(answers);
+      Graph.drawGraph($("graph-canvas"), answers, seed);
+      Fractal.drawFractal($("fractal-canvas"), answers.concat([combinedIntensity()]), seed);
+    });
   });
 })();

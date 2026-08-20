@@ -1,4 +1,4 @@
-// 嘘発見機風の波形グラフ描画
+// Signal Ritual: 解像度に合わせて一度だけ再初期化する波形描画。
 (function (global) {
   "use strict";
 
@@ -11,14 +11,27 @@
     };
   }
 
-  function drawGraph(canvas, values, seed) {
+  function prepareCanvas(canvas, fallbackWidth, fallbackHeight) {
     const ctx = canvas.getContext("2d");
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = canvas.clientWidth || canvas.parentElement.clientWidth;
-    const h = canvas.clientHeight || 380;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
+    const w = canvas.clientWidth || fallbackWidth;
+    const h = canvas.clientHeight || fallbackHeight;
+    const pixelWidth = Math.round(w * dpr);
+    const pixelHeight = Math.round(h * dpr);
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+
+  function drawGraph(canvas, values, seed) {
+    const { ctx, w, h } = prepareCanvas(
+      canvas,
+      canvas.parentElement ? canvas.parentElement.clientWidth : 520,
+      380
+    );
 
     const rnd = mulberry32(seed);
     const padL = 46, padR = 18, padT = 16, padB = 26;
@@ -117,14 +130,8 @@
     ctx.textAlign = "left";
   }
 
-  function drawHeroWave(canvas) {
-    const ctx = canvas.getContext("2d");
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = canvas.clientWidth || 520;
-    const h = canvas.clientHeight || 160;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  function drawHeroWave(canvas, now) {
+    const { ctx, w, h } = prepareCanvas(canvas, 520, 160);
     ctx.clearRect(0, 0, w, h);
     const mid = h / 2;
     ctx.strokeStyle = "rgba(64,120,180,0.12)";
@@ -132,7 +139,7 @@
       const y = (h / 6) * i;
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
     }
-    const t = performance.now() / 1000;
+    const t = (now || performance.now()) / 1000;
     ctx.lineWidth = 1.6;
     ctx.strokeStyle = "rgba(57,208,255,0.8)";
     ctx.beginPath();

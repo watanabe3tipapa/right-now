@@ -1,4 +1,4 @@
-// 生成中アニメーション（嘘発見機風・精密）
+// Signal Ritual: 走査アニメーション。描画はrequestAnimationFrame、DOM更新は表示値の変化時だけ行う。
 (function (global) {
   "use strict";
 
@@ -18,15 +18,20 @@
     const t0 = performance.now();
     const readout = document.getElementById("anim-readout");
     onDone = done;
+    let lastPercent = -1;
 
     if (raf) cancelAnimationFrame(raf);
     const loop = (now) => {
       const el = now - t0;
       const prog = Math.min(1, el / DURATION);
       drawFrame(ctx, w, h, values, seed, prog);
-      if (readout) readout.textContent =
-        "PROCESSING " + String(Math.floor(prog * 100)).padStart(3, "0") + "% // " +
-        "CHANNELS 5 // " + String.fromCharCode(65 + Math.floor(prog * 5));
+      const percent = Math.floor(prog * 100);
+      if (readout && percent !== lastPercent) {
+        readout.textContent =
+          "PROCESSING " + String(percent).padStart(3, "0") + "% // " +
+          "CHANNELS 5 // " + String.fromCharCode(65 + Math.min(4, Math.floor(prog * 5)));
+        lastPercent = percent;
+      }
       if (prog < 1) {
         raf = requestAnimationFrame(loop);
       } else if (onDone) {
@@ -43,14 +48,16 @@
     // グリッド
     ctx.strokeStyle = "rgba(64,120,180,0.13)";
     ctx.lineWidth = 1;
+    ctx.beginPath();
     for (let i = 0; i <= 12; i++) {
       const y = (h / 12) * i;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      ctx.moveTo(0, y); ctx.lineTo(w, y);
     }
     for (let i = 0; i <= 20; i++) {
       const x = (w / 20) * i;
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      ctx.moveTo(x, 0); ctx.lineTo(x, h);
     }
+    ctx.stroke();
 
     // 走査ライン（ペン先）
     const scanX = prog * (w + 120) - 60;
@@ -59,7 +66,7 @@
     ctx.moveTo(scanX, 0); ctx.lineTo(scanX, h); ctx.stroke();
 
     // 波形の描画進捗
-    const pts = 500;
+    const pts = 360;
     const mid = h / 2;
     const amp = h * 0.32;
     ctx.lineWidth = 1.4;
